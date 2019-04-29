@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" />
+  <Import Project="local.props" Condition="Exists('local.props')" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>th</RootNamespace>
+    <AssemblyName>PBC</AssemblyName>
+
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>Full</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="Microsoft.Build" />
+    <Reference Include="Microsoft.Build.Engine" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="PBC.cs" />
+    <Compile Include="Utils.cs" />
+    <Compile Include="SourceFile.cs" />
+    <Compile Include="Compiler.cs" />
+    <Compile Include="ProjectGenerator.cs" />
+    <Compile Include="ProjectBuilder.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="templates\Program.csproj.inc" />
+    <EmbeddedResource Include="templates\Program.cs" />
+    <EmbeddedResource Include="templates\User.props" />
+  </ItemGroup>
+  
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
