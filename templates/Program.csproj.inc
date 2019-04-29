@@ -3,7 +3,6 @@
 
   <Import Project="$(MSCommonProps)" Condition="Exists('$(MSCommonProps)')"/>
   <Import Project="User.props" Condition="Exists('User.props')" />
-  <Import Project="..\SpaceEngineersScripts\BankLevel\BankLevel.csproj" />
 
   <PropertyGroup>
     <MSCommonProps>$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props</MSCommonProps>
