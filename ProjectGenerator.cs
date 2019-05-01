@@ -43,25 +43,17 @@ namespace th {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 public class ProjectGenerator
 {
+  // -------------------------------------------------------------------------
+  public enum ProjectType
+  {
+    Program,
+    Library
+  }
+
   const string resourcePrefix = "th.templates.";
-  static Dictionary<string, string> assemblies = new Dictionary<string, string>() {
-    {"Sandbox.Common", "Sandbox.Common.dll"},
-    {"Sandbox.Game", "Sandbox.Game.dll"},
-    {"Sandbox.Graphics", "Sandbox.Graphics.dll"},
-    {"SpaceEngineers.Game", "SpaceEngineers.Game.dll"},
-    {"SpaceEngineers.ObjectBuilders", "SpaceEngineers.ObjectBuilders.dll"},
-    {"VRage", "VRage.dll"},
-    {"VRage.Audio", "VRage.Audio.dll"},
-    {"VRage.Game", "VRage.Game.dll"},
-    {"VRage.Input", "VRage.Input.dll"},
-    {"VRage.Library", "VRage.Library.dll"},
-    {"VRage.Math", "VRage.Math.dll"},
-    {"VRage.Render", "VRage.Render.dll"},
-    {"VRage.Render11", "VRage.Render11.dll"},
-    {"VRage.Scripting", "VRage.Scripting.dll"},
-  };
 
   Assembly assembly;
+  public ProjectType projectType {get; protected set;} = ProjectType.Program;
   public string userName {get; protected set;} = null;
   public string steamExe {get; protected set;} = null;
   public string steamPath {get; protected set;} = null;
@@ -69,7 +61,7 @@ public class ProjectGenerator
   public string seBinPath {get; protected set;} = null;
   public string thumbnailPath {get; protected set;} = null;
 
-  public string programName {get; protected set;} = null;
+  public string projectName {get; protected set;} = null;
   public string outputDir {get; protected set;} = null;
   public string sanitizedProgramName {get; protected set;} = null;
 
@@ -77,6 +69,7 @@ public class ProjectGenerator
   public List<string> additionalFiles {get; protected set;} = new List<string>();
 
   public bool toggleGenerateThumbnail = true;
+  Action generator;
 
   // -------------------------------------------------------------------------
   static XElement newElement(XNamespace ns, string str, params object[] arguments)
@@ -116,9 +109,24 @@ public class ProjectGenerator
         case "--output-dir" :  {
           outputDir = args.nextArg() + Path.DirectorySeparatorChar;
         } break;
+
+        case "-t" :
+        case "--project-type" : {
+          string projectTypeString = args.nextArg();
+          if (projectTypeString.empty()) 
+            throw new ArgumentException("Expecting project type");
+          switch(projectTypeString) {
+            case "program" : projectType = ProjectType.Program; break;
+            case "library" : projectType = ProjectType.Library; break;
+            default : {
+              throw new ArgumentException("Unknown project type : " + projectTypeString);
+            };
+          }
+        } break;
+
         case "-n" :
-        case "--program-name" :  {
-          programName = args.nextArg();
+        case "--project-name" :  {
+          projectName = args.nextArg();
         } break;
         case "--no-thumb" : {
           toggleGenerateThumbnail = false;
@@ -154,24 +162,34 @@ public class ProjectGenerator
       Console.WriteLine("Using given game location : " + gamePath);
     }
 
-    seBinPath = Path.GetFullPath(gamePath + @"Bin64\");
+    seBinPath = Path.GetFullPath(gamePath + @"\Bin64\");
     thumbnailPath = Path.GetFullPath(gamePath + @"\Content\Textures\GUI\Icons\IngameProgrammingIcon.png");
 
-    if (programName.empty()) {
-      throw new ArgumentException("Program name is not given");
+    if (projectName.empty()) {
+      throw new ArgumentException("Project name is not given");
     }
 
-    sanitizedProgramName = programName.sanitizeFileName();
+    sanitizedProgramName = projectName.sanitizeFileName();
+
+    switch(projectType) {
+      case ProjectType.Program : {
+        generator = generateProgram;
+      } break;
+      case ProjectType.Library : {
+        generator = generateLibrary;
+      } break;
+    }
+
     sourceFiles.Add(sanitizedProgramName + ".cs");
   }
 
   // -------------------------------------------------------------------------
-  void generateProjectFile()
+  void generateProjectFile(string template)
   {
     string filePath = Path.GetFullPath(Path.Combine(outputDir, sanitizedProgramName + ".csproj"));
     Console.WriteLine("Generating project file : " + filePath);
 
-    XDocument doc = XDocument.Load(assembly.GetManifestResourceStream(resourcePrefix + "Program.csproj.inc"));
+    XDocument doc = XDocument.Load(assembly.GetManifestResourceStream(resourcePrefix + template));
     XNamespace ns = doc.Root.GetDefaultNamespace();
     XmlNamespaceManager nsm = new XmlNamespaceManager(new NameTable());
     nsm.AddNamespace("mb", "http://schemas.microsoft.com/developer/msbuild/2003");
@@ -179,7 +197,7 @@ public class ProjectGenerator
     XElement localProps = doc.XPathSelectElement(@"/mb:Project/mb:Import[1]", nsm);
 
     XElement assemblyName = doc.XPathSelectElement(@"/mb:Project/mb:PropertyGroup/mb:AssemblyName", nsm);
-    assemblyName.Add(programName);
+    assemblyName.Add(projectName);
 
     XElement sourceFilesGroup = doc.XPathSelectElement(@"/mb:Project/mb:ItemGroup[1]", nsm);
     foreach(string sourceFile in sourceFiles) 
@@ -187,7 +205,7 @@ public class ProjectGenerator
 
     XElement additionalFilesGroup = doc.XPathSelectElement(@"/mb:Project/mb:ItemGroup[2]", nsm);
 
-    if (toggleGenerateThumbnail) 
+    if (projectType == ProjectType.Program && toggleGenerateThumbnail) 
       additionalFilesGroup.Add(newElement(ns, @"<AdditionalFiles Include=""{0}""><PBC>Thumbnail</PBC></AdditionalFiles>", "thumb.png"));
 
     foreach(string additionalFile in additionalFiles) 
@@ -242,16 +260,37 @@ public class ProjectGenerator
   }
 
   // -------------------------------------------------------------------------
-  public void generate()
+  void generateProgram()
   {
     Directory.CreateDirectory(outputDir);
     writeResourceToFile("Program.cs", outputDir + Path.DirectorySeparatorChar + sanitizedProgramName + ".cs");
-    generateProjectFile();
+    generateProjectFile("Program.csproj.inc");
     generateUserProperties();
     if (toggleGenerateThumbnail) {
       copyThumbnail();
     }
     Console.WriteLine("Done");
+  }
+
+  // -------------------------------------------------------------------------
+  void generateLibrary()
+  {
+    Directory.CreateDirectory(outputDir);
+    writeResourceToFile("Library.cs", outputDir + Path.DirectorySeparatorChar + sanitizedProgramName + ".cs");
+    generateProjectFile("Library.csproj.inc");
+    generateUserProperties();
+    if (toggleGenerateThumbnail) {
+      copyThumbnail();
+    }
+    Console.WriteLine("Done");
+  }
+
+  // -------------------------------------------------------------------------
+  public void generate()
+  {
+    if (generator == null)
+      throw new System.Exception("Generator is null. This should not have happened.");
+    generator();
   }
 }
 

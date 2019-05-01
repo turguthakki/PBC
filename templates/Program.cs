@@ -18,7 +18,7 @@ using Sandbox.ModAPI.Ingame;
 using Sandbox.ModAPI.Interfaces;
 using SpaceEngineers.Game.ModAPI.Ingame;
 
-namespace SpaceEngineers {
+namespace IngameScript {
   partial class Program : MyGridProgram 
   {
     #region Program

@@ -44,7 +44,6 @@ public class ProjectBuilder
   public string outputDir {get; protected set;} = null;
   public string thumb {get; protected set;} = null;
 
-  Project project;
   Compiler compiler;
   List<string> files = new List<string>();
 
@@ -77,34 +76,7 @@ public class ProjectBuilder
       throw new ArgumentException("Project file must be specified.");
     }
 
-    project = new Project(projectFile);
-    project.ReevaluateIfNecessary();
-
-    if (name.empty()) {
-      foreach(ProjectProperty property in project.Properties) {
-        if (property.Name == "AssemblyName")
-          name = property.EvaluatedValue;
-      }
-    }
-
-    if (thumb.empty()) {
-      foreach(ProjectProperty property in project.Properties) {
-        if (property.Name == "AssemblyName")
-          name = property.EvaluatedValue;
-      }
-    }
-   
-    foreach(ProjectItem item in project.Items) {
-      if (item.ItemType == "Compile") {
-        string path = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(item.Xml.ContainingProject.FullPath), item.EvaluatedInclude));
-        if (path.empty() || Path.GetExtension(path).ToLowerInvariant() != ".cs")
-          continue;
-        files.Add(path);  
-      }
-      else if (thumb.empty() && item.ItemType == "AdditionalFiles" && item.HasMetadata("PBC") && item.GetMetadataValue("PBC").ToLowerInvariant() == "thumbnail") {
-        thumb = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(item.Xml.ContainingProject.FullPath), item.EvaluatedInclude));
-      }
-    }
+    readProject(projectFile);
 
     List<string> compilerParams = new List<String>();
 
@@ -124,6 +96,47 @@ public class ProjectBuilder
 
     compilerParams.AddRange(files);
     compiler = new Compiler(new Queue<string>(compilerParams));
+  }
+
+  // -------------------------------------------------------------------------
+  public void readProject(string projectFile, bool mainProject = true)
+  {
+    Project project;
+    project = new Project(projectFile);
+    project.ReevaluateIfNecessary();
+
+    if (mainProject) {
+      if (name.empty()) {
+        foreach(ProjectProperty property in project.Properties) {
+          if (property.Name == "AssemblyName")
+            name = property.EvaluatedValue;
+        }
+      }
+
+      if (thumb.empty()) {
+        foreach(ProjectProperty property in project.Properties) {
+          if (property.Name == "AssemblyName")
+            name = property.EvaluatedValue;
+        }
+      }
+    }
+   
+    foreach(ProjectItem item in project.Items) {
+      if (item.ItemType == "Compile") {
+        string path = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(item.Xml.ContainingProject.FullPath), item.EvaluatedInclude));
+        if (path.empty() || Path.GetExtension(path).ToLowerInvariant() != ".cs")
+          continue;
+        files.Add(path);  
+      }
+      else if (item.ItemType == "ProjectReference") {
+        string path = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(item.Xml.ContainingProject.FullPath), item.EvaluatedInclude));
+        Console.WriteLine("Project file : " + path);
+        readProject(path, false);
+      }
+      else if (thumb.empty() && item.ItemType == "AdditionalFiles" && item.HasMetadata("PBC") && item.GetMetadataValue("PBC").ToLowerInvariant() == "thumbnail") {
+        thumb = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(item.Xml.ContainingProject.FullPath), item.EvaluatedInclude));
+      }
+    }
   }
 
   // -------------------------------------------------------------------------

@@ -31,6 +31,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.CodeDom;
+using System.CodeDom.Compiler;
+
+using Microsoft.CSharp;
+
 
 namespace th {
 
@@ -99,7 +104,7 @@ public class Compiler
     Console.WriteLine("Compiling script");
     foreach(SourceFile file in sourceFiles) {
       lines.AddRange(file.lines);
-    }
+    } 
   }
 
   // -------------------------------------------------------------------------
@@ -108,8 +113,9 @@ public class Compiler
     Console.WriteLine("Writing files");
     string []lines = new string[this.lines.Count];
 
-    for (int i = 0; i < lines.Length; i++)
+    for (int i = 0; i < lines.Length; i++) {
       lines[i] = this.lines[i].content;
+    }
 
     Directory.CreateDirectory(outputDir);
     File.WriteAllText(outputDir + Path.DirectorySeparatorChar + "script.cs", string.Join(Environment.NewLine, lines));

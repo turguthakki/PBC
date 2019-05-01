@@ -18,6 +18,7 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="Microsoft.Build" />
     <Reference Include="Microsoft.Build.Engine" />
   </ItemGroup>
@@ -34,6 +35,8 @@
   <ItemGroup>
     <EmbeddedResource Include="templates\Program.csproj.inc" />
     <EmbeddedResource Include="templates\Program.cs" />
+    <EmbeddedResource Include="templates\Library.csproj.inc" />
+    <EmbeddedResource Include="templates\Library.cs" />
     <EmbeddedResource Include="templates\User.props" />
   </ItemGroup>
   

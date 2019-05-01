@@ -55,6 +55,7 @@ public class SourceFile
   }
 
   const string program = "Program";
+  const string library = "Library";
 
   public string pathToFile {get; private set;}
   public List<Line> lines {get; private set;} = new List<Line>();
@@ -82,14 +83,14 @@ public class SourceFile
     bool code = false;
     for (int l = 0; l < fileContent.Length; l++) {
       string line = fileContent[l];
-      if (line.isEndOfRegion(program))
+      if (line.isEndOfRegion(program) || line.isEndOfRegion(library))
         code = false;
 
       if (code) {
         lines.Add(new Line(this, line, l));
       }
 
-      if (line.isStartOfRegion(program))
+      if (line.isStartOfRegion(program) || line.isStartOfRegion(library))
         code = true;
     }
   }
